@@ -15,7 +15,8 @@ npm run build && npm run start
 | PostgreSQL | `postgres` | **5433** → 5432 |
 | Redis | `redis` | (iç) 6379 |
 | n8n | `n8n` | **5678** |
-| n8n worker | `n8n-worker` | — |
+
+> n8n `EXECUTIONS_MODE=regular` (tek container; queue/worker kaldırıldı — restart loop önlemek için).
 
 ## Port kuralı
 
