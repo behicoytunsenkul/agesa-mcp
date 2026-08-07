@@ -93,6 +93,7 @@ try {
 Olası nedenler:
 1) .env.local içindeki user/şifre/port yanlış (auth_failed)
 2) Postgres 5433'te dinlemiyor →  ss -tlnp | grep 5433
+   Beklenen: user=root  password=123456  db=firma_asistani
 3) Veritabanı yok →  createdb / CREATE DATABASE
 4) pg_hba.conf password auth izin vermiyor
 

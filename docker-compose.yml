@@ -4,8 +4,8 @@ services:
     container_name: agesa-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: agesa
-      POSTGRES_PASSWORD: agesa123
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: "123456"
       POSTGRES_DB: firma_asistani
     ports:
       - "5433:5432"
@@ -13,7 +13,7 @@ services:
       - agesa_pgdata:/var/lib/postgresql/data
       - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agesa -d firma_asistani"]
+      test: ["CMD-SHELL", "pg_isready -U root -d firma_asistani"]
       interval: 5s
       timeout: 5s
       retries: 10

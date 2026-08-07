@@ -1,106 +1,100 @@
 # Yerel Sunucu Kurulumu (Neon yok)
 
-Bu rehber AgeSA MCP + yerel PostgreSQL + n8n’i **aynı Linux sunucuda** çalıştırır.
+AgeSA MCP + yerel PostgreSQL + n8n — aynı Linux sunucu.
 
-## Mimari
+## Bağlantı bilgileri
 
-```
-[Tarayıcı] → Next.js :3000
-                ↓ DATABASE_URL
-           PostgreSQL :5433  (firma_asistani)
-                ↑
-           n8n Postgres node
-[Tarayıcı/OmniAgent] → Next /api/chat → n8n Chat Webhook :5678
-```
-
----
-
-## 1) PostgreSQL (Docker — önerilen)
-
-```bash
-cd ~/VeriTabaniMCP/agesa-mcp   # veya repo klasörünüz
-git pull
-sudo apt update && sudo apt install -y docker.io docker-compose-v2
-sudo usermod -aG docker $USER   # sonra yeniden login gerekebilir
-
-docker compose up -d
-docker compose ps               # healthy olmalı
-```
-
-Varsayılan bağlantı:
-
-```text
-Host: 127.0.0.1
-Port: 5433
-Database: firma_asistani
-User: agesa
-Password: agesa123
-```
-
-`DATABASE_URL`:
+| Alan | Değer |
+|------|--------|
+| Host | `127.0.0.1` |
+| Port | `5433` |
+| Database | `firma_asistani` |
+| User | `root` |
+| Password | `123456` |
 
 ```env
-postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani
-```
-
-> Docker olmadan native Postgres kurduysanız aynı DB/user’ı oluşturup `scripts/schema.sql` uygulayın.
-
----
-
-## 2) Next.js env
-
-```bash
-cp .env.example .env.local
-nano .env.local
-```
-
-İçerik örneği:
-
-```env
-DATABASE_URL=postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani
+DATABASE_URL=postgresql://root:123456@127.0.0.1:5433/firma_asistani
 N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 ```
 
+---
+
+## 1) Repo
+
 ```bash
+cd ~/VeriTabaniMCP/agesa-mcp
+git pull
 npm install
-npm run db:setup    # "Bağlantı: Local / klasik PostgreSQL" yazmalı
+```
+
+---
+
+## 2) PostgreSQL
+
+### Seçenek A — Docker (önerilen)
+
+```bash
+docker compose down
+docker compose up -d
+docker compose ps
+```
+
+### Seçenek B — Mevcut Postgres (5433)
+
+DB yoksa oluşturun:
+
+```bash
+psql -h 127.0.0.1 -p 5433 -U root -d postgres -c "CREATE DATABASE firma_asistani;"
+```
+
+---
+
+## 3) Env
+
+```bash
+cp .env.example .env.local
+# veya doğrudan:
+cat > .env.local <<'EOF'
+DATABASE_URL=postgresql://root:123456@127.0.0.1:5433/firma_asistani
+N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
+EOF
+```
+
+---
+
+## 4) Schema + Next.js
+
+```bash
+npm run db:ping     # OK görmelisiniz
+npm run db:setup
 npm run build
 npm run start       # 0.0.0.0:3000
 ```
 
-Firewall (başka cihazdan erişim):
+PM2:
+
+```bash
+sudo npm i -g pm2
+pm2 start npm --name agesa-mcp -- start
+pm2 save
+```
+
+Firewall:
 
 ```bash
 sudo ufw allow 3000/tcp
-sudo ufw allow 5678/tcp   # n8n UI/webhook için
+sudo ufw allow 5678/tcp
 sudo ufw reload
 ```
 
-Açılış: `http://SUNUCU_IP:3000`
+Uygulama: `http://SUNUCU_IP:3000`  
+Login: `deneme-user@test.com` / `DenemeUser123`
+
+Veri: **Datas → Excel import**
 
 ---
 
-## 3) Veriyi doldurma
-
-### A) Excel ile (kolay)
-
-1. `http://SUNUCU_IP:3000` → login → **Datas**
-2. Excel import (Firmalar sheet)
-
-### B) Neon’dan dump (opsiyonel)
-
-Eski Neon’dan veri taşıyacaksanız (erişiminiz olan bir makinede):
-
-```bash
-pg_dump "$NEON_DATABASE_URL" --data-only --table=public.firmalar > firmalar.sql
-psql "postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani" < firmalar.sql
-```
-
----
-
-## 4) n8n kurulumu (lokal)
-
-### Docker ile n8n
+## 5) n8n
 
 ```bash
 docker run -d --name n8n --restart unless-stopped \
@@ -114,98 +108,30 @@ docker run -d --name n8n --restart unless-stopped \
   docker.n8n.io/n8nio/n8n
 ```
 
-`SUNUCU_IP` yerine gerçek IP yazın (webhook’ların dışarıdan çözülmesi için).
-
-UI: `http://SUNUCU_IP:5678`
-
-### Workflow import
-
-1. n8n → **Import from File**
-2. Dosya: `n8n/firma-veritabani-asistani.json` (repoda)
-
-### Postgres credential (Neon yerine local)
-
-**Credentials → Postgres → New**
+1. UI: `http://SUNUCU_IP:5678`
+2. Import: `n8n/firma-veritabani-asistani.json`
+3. **Postgres credential**
 
 | Alan | Değer |
 |------|--------|
-| Host | `host.docker.internal` (n8n Docker ise) veya `127.0.0.1` (n8n native ise) |
-| Database | `firma_asistani` |
-| User | `agesa` |
-| Password | `agesa123` |
+| Host | `host.docker.internal` (n8n Docker) veya `127.0.0.1` (native) |
 | Port | `5433` |
+| Database | `firma_asistani` |
+| User | `root` |
+| Password | `123456` |
 | SSL | Disable |
 
-**Tüm Firmaları Getir** node’unda bu credential’ı seçin.
+4. **Tüm Firmaları Getir** → bu credential  
+5. **OpenAI** → kendi API key  
+6. Chat Trigger → Public + **Active**  
+7. Webhook: `http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat`
 
-> n8n ve Postgres aynı `docker compose` network’ündeyse Host olarak `agesa-postgres` de kullanılabilir.
+---
 
-### OpenAI credential
-
-**OpenAI Chat Model** → kendi OpenAI API key’iniz.
-
-### Chat Trigger ayarları
-
-1. **Make Chat Publicly Available** = ON  
-2. Mode = **Embedded Chat** (veya Hosted; Next kendi UI’sini kullandığı için Embedded webhook yeterli)  
-3. CORS / Allowed Origin = `*` veya `http://SUNUCU_IP:3000`  
-4. Workflow’u **Active** edin  
-
-Webhook path (workflow’daki `webhookId`):
-
-```text
-/webhook/firma-asistani-chat-webhook/chat
-```
-
-Next `.env.local` içinde:
-
-```env
-N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
-```
-
-Next ile n8n farklı makinelerdeyse `127.0.0.1` yerine n8n sunucu IP’sini yazın; sonra:
+## 6) Kontrol
 
 ```bash
-npm run build && npm run start
-# veya pm2 restart agesa-mcp
+ss -tlnp | grep 5433
+npm run db:ping
+curl -s http://127.0.0.1:3000/api/dashboard | head
 ```
-
-### Kritik n8n notu
-
-Sizin workflow’da Chat → Postgres → Agent zinciri var. Postgres **çok satır** döndürürse Agent satır başına tekrar çalışabilir. Önlemek için:
-
-- Agent node’da **executeOnce = true** (sizin JSON’da var)  
-- Mümkünse Postgres sonrası tek item’a indirgeyen bir Code node ekleyin (önceki Agesa workflow’undaki “Tek Item Hazırla” gibi)
-
----
-
-## 5) Hızlı kontrol listesi
-
-| Kontrol | Komut / Beklenti |
-|---------|------------------|
-| Postgres ayakta | `docker compose ps` → healthy |
-| Schema | `npm run db:setup` → Local PostgreSQL |
-| Next | `curl -I http://127.0.0.1:3000` → 200/307 |
-| Dashboard API | `curl http://127.0.0.1:3000/api/dashboard` → JSON |
-| n8n | `http://SUNUCU_IP:5678` açılıyor |
-| Chat | OmniAgent’den soru → Logs’ta görünüyor |
-
----
-
-## 6) PM2 (Next sürekli açık)
-
-```bash
-sudo npm i -g pm2
-cd ~/VeriTabaniMCP/agesa-mcp
-pm2 start npm --name agesa-mcp -- start
-pm2 save
-pm2 startup
-```
-
----
-
-## Login (Next)
-
-- E-posta: `deneme-user@test.com`
-- Şifre: `DenemeUser123`
-- (`lib/auth.ts` — production’da değiştirin)

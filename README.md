@@ -30,7 +30,7 @@ npm install && npm run db:setup && npm run build && npm run start
 ```
 
 n8n workflow: [n8n/firma-veritabani-asistani.json](n8n/firma-veritabani-asistani.json)  
-Postgres credential’ı Neon yerine `127.0.0.1` / `firma_asistani` yapın.
+Postgres credential’ı Neon yerine `127.0.0.1:5433` / `firma_asistani` / user `root` yapın.
 
 ## Kurulum (lokal geliştirme)
 
