@@ -2,10 +2,6 @@ import { config as loadEnv } from "dotenv";
 import { existsSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import { neonConfig, Pool } from "@neondatabase/serverless";
-import ws from "ws";
-
-neonConfig.webSocketConstructor = ws;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
@@ -23,10 +19,31 @@ if (!connectionString) {
 }
 
 const sql = readFileSync(join(__dirname, "schema.sql"), "utf8");
-const pool = new Pool({ connectionString });
+const isNeon =
+  connectionString.includes("neon.tech") ||
+  connectionString.includes("neon.database");
+
+let pool;
+
+if (isNeon) {
+  const { neonConfig, Pool } = await import("@neondatabase/serverless");
+  const ws = (await import("ws")).default;
+  neonConfig.webSocketConstructor = ws;
+  pool = new Pool({ connectionString });
+  console.log("Bağlantı: Neon (WebSocket)");
+} else {
+  const pgMod = await import("pg");
+  const Pool = pgMod.Pool || pgMod.default?.Pool || pgMod.default;
+  pool = new Pool({
+    connectionString,
+    ssl: connectionString.includes("sslmode=require")
+      ? { rejectUnauthorized: false }
+      : undefined,
+  });
+  console.log("Bağlantı: Local / klasik PostgreSQL (TCP)");
+}
 
 try {
-  // Neon WS üzerinden (443); 5432 firewall engeline takılmaz
   await pool.query(sql);
   console.log("Schema uygulandı: firmalar + chat_sessions + chat_messages");
 } catch (err) {

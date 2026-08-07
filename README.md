@@ -16,7 +16,23 @@ Neon PostgreSQL üzerindeki firma veritabanı için Next.js portal: Dashboard, D
 - Neon / PostgreSQL connection string
 - n8n Chat Trigger webhook URL
 
-## Kurulum (lokal)
+## Yerel sunucu (Neon yok)
+
+Tam kurulum: [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md)
+
+Özet:
+
+```bash
+git pull
+docker compose up -d
+cp .env.example .env.local   # local Postgres + local n8n URL
+npm install && npm run db:setup && npm run build && npm run start
+```
+
+n8n workflow: [n8n/firma-veritabani-asistani.json](n8n/firma-veritabani-asistani.json)  
+Postgres credential’ı Neon yerine `127.0.0.1` / `firma_asistani` yapın.
+
+## Kurulum (lokal geliştirme)
 
 ```bash
 git clone https://github.com/behicoytunsenkul/agesa-mcp.git

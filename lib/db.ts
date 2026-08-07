@@ -1,11 +1,7 @@
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "fs";
 import { resolve } from "path";
-import { neonConfig, Pool, type QueryResultRow } from "@neondatabase/serverless";
-import ws from "ws";
-
-// Node.js: Neon üzerinden WebSocket (443) — kurumsal ağlarda 5432 engelli olsa da çalışır
-neonConfig.webSocketConstructor = ws;
+import type { QueryResult, QueryResultRow } from "pg";
 
 function loadEnvFiles() {
   const root = process.cwd();
@@ -19,11 +15,46 @@ function loadEnvFiles() {
 
 loadEnvFiles();
 
+type AnyPool = {
+  query: <T extends QueryResultRow = QueryResultRow>(
+    text: string,
+    params?: unknown[]
+  ) => Promise<QueryResult<T>>;
+};
+
 declare global {
-  var __agesaPool: Pool | undefined;
+  var __agesaPool: AnyPool | undefined;
+  var __agesaPoolMode: "local" | "neon" | undefined;
 }
 
-function createPool() {
+function isNeonUrl(url: string) {
+  return url.includes("neon.tech") || url.includes("neon.database");
+}
+
+async function createPool(connectionString: string): Promise<AnyPool> {
+  if (isNeonUrl(connectionString)) {
+    const { neonConfig, Pool } = await import("@neondatabase/serverless");
+    const ws = (await import("ws")).default;
+    neonConfig.webSocketConstructor = ws;
+    global.__agesaPoolMode = "neon";
+    return new Pool({ connectionString, max: 10 }) as unknown as AnyPool;
+  }
+
+  const { Pool } = await import("pg");
+  global.__agesaPoolMode = "local";
+  const needsSsl =
+    connectionString.includes("sslmode=require") ||
+    connectionString.includes("sslmode=verify");
+  return new Pool({
+    connectionString,
+    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    max: 10,
+  });
+}
+
+export async function getPool(): Promise<AnyPool> {
+  if (global.__agesaPool) return global.__agesaPool;
+
   const connectionString = process.env.DATABASE_URL?.trim();
   if (!connectionString) {
     throw new Error(
@@ -31,16 +62,7 @@ function createPool() {
     );
   }
 
-  return new Pool({
-    connectionString,
-    max: 10,
-  });
-}
-
-export function getPool(): Pool {
-  if (!global.__agesaPool) {
-    global.__agesaPool = createPool();
-  }
+  global.__agesaPool = await createPool(connectionString);
   return global.__agesaPool;
 }
 
@@ -48,6 +70,6 @@ export async function query<T extends QueryResultRow = QueryResultRow>(
   text: string,
   params?: unknown[]
 ) {
-  const pool = getPool();
+  const pool = await getPool();
   return pool.query<T>(text, params);
 }

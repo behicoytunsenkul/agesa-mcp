@@ -1,0 +1,231 @@
+{
+  "name": "Firma Veritabanı Asistanı",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [-200, 400],
+      "id": "b0599db0-2102-4043-bc7b-8262b688a7c1",
+      "name": "Sohbet Mesajı Alındığında",
+      "webhookId": "firma-asistani-chat-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  sira AS \"Sıra\",\n  firma_adi AS \"Firma Adı\",\n  firma_aciklamasi AS \"Firma Açıklaması\",\n  iletildigi_kanal AS \"İletildiği Kanal\",\n  ana_kategori AS \"Ana Kategori\",\n  alt_kategori AS \"Alt Kategori\",\n  degerlendirme AS \"Değerlendirme\",\n  referans AS \"Referans\",\n  rakipler AS \"Rakipler\",\n  ekip AS \"Ekip\",\n  not_metni AS \"Not\",\n  link AS \"Link\",\n  yol_haritasi_giris_tarihi AS \"Yol Haritası Giriş Tarihi\",\n  gorusme_tarihi AS \"Görüşme Tarihi\",\n  katilimcilar AS \"Katılımcılar\"\nFROM public.firmalar\nORDER BY sira NULLS LAST, firma_adi;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [80, 400],
+      "id": "6166f311-1c06-431c-becc-339b9e668a9f",
+      "name": "Tüm Firmaları Getir",
+      "notes": "Credential: Local Postgres — Host 127.0.0.1, DB firma_asistani, User agesa"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Sohbet Mesajı Alındığında').item.json.chatInput }}",
+        "options": {
+          "systemMessage": "Sen, firma/girişim veritabanı üzerinde çalışan uzman bir analiz asistanısın.\n\nVERİ ALANLARI (yalnızca bunlar):\nFirma Adı | Firma Açıklaması | İletildiği Kanal | Ana Kategori | Alt Kategori | Değerlendirme | Referans | Rakipler | Ekip | Not | Link | Yol Haritası Giriş Tarihi | Görüşme Tarihi | Katılımcılar\n\nKURALLAR:\n- Bilgiyi SADECE bağlı araçlardan al. Hafızadan/tahminden firma, sayı veya istatistik UYDURMA.\n- Araç sonuç bulamazsa dürüstçe söyle.\n- Selam/teşekkür/ilgisiz sohbette araç ÇAĞIRMA; kısa Türkçe cevap ver.\n- 15'ten fazla kayıtta ilk 15'i göster, toplamı söyle, devamını sor.\n- Yazım farklarında en yakın eşleşmeyi dene; yoksa belirt.\n- Link'i yalnızca kaynak olarak ilet; arama kriteri yapma (Link Getir hariç).\n- Cevaplar Türkçe, net, madde imli olsun.\n- Sohbet geçmişini (son 10 mesaj) kullan; \"o firma\", \"o kategori\" atıflarını çöz.\n\nARAÇ SEÇİMİ:\n1. Belirli firma adı → Firma Bilgisi Getir\n2. Herhangi bir alana göre liste/filtre (kanal, kategori, değerlendirme, referans, ekip, not, açıklama vb.) → Alana Göre Filtrele\n3. Sayı/istatistik/dağılım (kaç firma, kategori dağılımı, kanal dağılımı, referans dağılımı vb.) → Alan Dağılımı Analizi\n4. Değerlendirme özeti, pipeline durumu, genel portföy değerlendirmesi → Değerlendirme ve Genel Analiz\n5. Serbest/tanımlayıcı arama (açıklama/not içinde anahtar kelime) → Açıklama ve Not Arama\n6. Tarih/yıl/aralık → Tarihe Göre Filtrele\n7. Ekip / rakip / katılımcı / referans kişi adına göre → İlişki Arama\n8. Belirli firmanın veya filtrelenmiş listelerin linkleri → Link Getir\n9. Gerekirse birden fazla aracı art arda kullan."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [400, 400],
+      "id": "fc8f85a8-ed3b-48c6-9ccc-a4390f503639",
+      "name": "Firma Veritabanı Asistanı",
+      "executeOnce": true,
+      "notes": "executeOnce=true zorunlu: Postgres satırları için agent'ın döngüye girmesini engeller."
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [120, 700],
+      "id": "4410045f-d280-4981-adfc-7d6e044793c3",
+      "name": "OpenAI Chat Model",
+      "notes": "İçe aktardıktan sonra kendi OpenAI credential'ınızı seçin."
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [280, 700],
+      "id": "016da7bb-5952-4ff8-a853-500cf1aa4a1e",
+      "name": "Sohbet Hafızası (Son 10 Mesaj)"
+    },
+    {
+      "parameters": {
+        "description": "Kullanıcı belirli bir firmanın/girişimin adını verdiğinde kullan. Firma Adı ile arar; tüm alanları döndürür.",
+        "jsCode": "const girdi = (typeof query === 'object' && query !== null) ? query : { firma_adi: query };\nconst aranan = (girdi.firma_adi || '').toString().trim().toLocaleLowerCase('tr');\nif (!aranan) return JSON.stringify({ hata: 'Aranacak firma adı boş olamaz.' });\n\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\n\nlet eslesen = tum.filter(f => n(f['Firma Adı']) === aranan);\nif (eslesen.length === 0) {\n  eslesen = tum.filter(f => {\n    const ad = n(f['Firma Adı']);\n    return ad.includes(aranan) || aranan.includes(ad);\n  });\n}\n\nif (eslesen.length === 0) {\n  return JSON.stringify({\n    sonuc: 'bulunamadi',\n    mesaj: `'${girdi.firma_adi}' adında (veya yakın) firma bulunamadı.`\n  });\n}\n\nreturn JSON.stringify({\n  sonuc: 'bulundu',\n  bulunan_sayisi: eslesen.length,\n  firmalar: eslesen\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"firma_adi\": {\n      \"type\": \"string\",\n      \"description\": \"Firma/girişim adı (tam veya yaklaşık)\"\n    }\n  },\n  \"required\": [\"firma_adi\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [460, 700],
+      "id": "b7e3a592-4b6c-4f7d-b304-7a17b00a57f4",
+      "name": "Firma Bilgisi Getir"
+    },
+    {
+      "parameters": {
+        "description": "Herhangi bir sütuna göre firma listesi filtreler.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\nconst limit = 15;\n\nconst filtreler = [\n  ['firma_adi', 'Firma Adı'],\n  ['firma_aciklamasi', 'Firma Açıklaması'],\n  ['kanal', 'İletildiği Kanal'],\n  ['ana_kategori', 'Ana Kategori'],\n  ['alt_kategori', 'Alt Kategori'],\n  ['degerlendirme', 'Değerlendirme'],\n  ['referans', 'Referans'],\n  ['rakipler', 'Rakipler'],\n  ['ekip', 'Ekip'],\n  ['not_metni', 'Not'],\n  ['link', 'Link'],\n  ['katilimcilar', 'Katılımcılar']\n];\n\nconst aktif = filtreler\n  .map(([k, alan]) => ({ alan, deger: n(p[k]) }))\n  .filter(x => x.deger);\n\nif (aktif.length === 0) {\n  return JSON.stringify({ hata: 'En az bir filtre alanı doldurulmalı.' });\n}\n\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\nconst eslesen = tum.filter(f => aktif.every(({ alan, deger }) => n(f[alan]).includes(deger)));\n\nconst dilim = eslesen.slice(offset, offset + limit).map(f => ({\n  'Firma Adı': f['Firma Adı'],\n  'Ana Kategori': f['Ana Kategori'],\n  'Alt Kategori': f['Alt Kategori'],\n  'Değerlendirme': f['Değerlendirme'],\n  'İletildiği Kanal': f['İletildiği Kanal'],\n  'Referans': f['Referans'],\n  'Ekip': f['Ekip'],\n  'Firma Açıklaması': f['Firma Açıklaması']\n}));\n\nreturn JSON.stringify({\n  uygulanan_filtreler: aktif.map(a => ({ alan: a.alan, deger: a.deger })),\n  toplam_eslesen_sayisi: eslesen.length,\n  offset,\n  gosterilen_kayit_sayisi: dilim.length,\n  daha_var: offset + dilim.length < eslesen.length,\n  kayitlar: dilim\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"firma_adi\": { \"type\": \"string\" },\n    \"firma_aciklamasi\": { \"type\": \"string\" },\n    \"kanal\": { \"type\": \"string\" },\n    \"ana_kategori\": { \"type\": \"string\" },\n    \"alt_kategori\": { \"type\": \"string\" },\n    \"degerlendirme\": { \"type\": \"string\" },\n    \"referans\": { \"type\": \"string\" },\n    \"rakipler\": { \"type\": \"string\" },\n    \"ekip\": { \"type\": \"string\" },\n    \"not_metni\": { \"type\": \"string\" },\n    \"link\": { \"type\": \"string\" },\n    \"katilimcilar\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [620, 700],
+      "id": "465e1bf4-a447-4dca-96b1-a714bd2d970f",
+      "name": "Alana Göre Filtrele"
+    },
+    {
+      "parameters": {
+        "description": "Herhangi bir alan için sayısal dağılım/istatistik üretir.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst istenen = (p.alan || '').toString().trim().toLocaleLowerCase('tr');\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\n\nconst alanMap = {\n  firma_adi: 'Firma Adı',\n  firma_aciklamasi: 'Firma Açıklaması',\n  kanal: 'İletildiği Kanal',\n  ana_kategori: 'Ana Kategori',\n  alt_kategori: 'Alt Kategori',\n  degerlendirme: 'Değerlendirme',\n  referans: 'Referans',\n  rakipler: 'Rakipler',\n  ekip: 'Ekip',\n  not_metni: 'Not',\n  link: 'Link',\n  katilimcilar: 'Katılımcılar'\n};\n\nfunction grupla(alan) {\n  const sonuc = {};\n  for (const f of tum) {\n    const ham = f[alan];\n    const deger = (ham === null || ham === undefined || String(ham).trim() === '') ? 'Belirtilmemiş' : String(ham);\n    sonuc[deger] = (sonuc[deger] || 0) + 1;\n  }\n  return Object.entries(sonuc)\n    .sort((a, b) => b[1] - a[1])\n    .map(([deger, adet]) => ({ deger, adet, yuzde: tum.length ? Math.round((adet / tum.length) * 1000) / 10 : 0 }));\n}\n\nconst cevap = { toplam_firma_sayisi: tum.length };\n\nif (alanMap[istenen]) {\n  cevap.kirilim_alani = alanMap[istenen];\n  cevap.dagilim = grupla(alanMap[istenen]);\n} else {\n  cevap.ana_kategori_dagilimi = grupla('Ana Kategori');\n  cevap.alt_kategori_dagilimi = grupla('Alt Kategori');\n  cevap.degerlendirme_dagilimi = grupla('Değerlendirme');\n  cevap.kanal_dagilimi = grupla('İletildiği Kanal');\n  cevap.referans_dagilimi = grupla('Referans');\n}\n\nreturn JSON.stringify(cevap);",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"alan\": {\n      \"type\": \"string\",\n      \"enum\": [\"\", \"firma_adi\", \"firma_aciklamasi\", \"kanal\", \"ana_kategori\", \"alt_kategori\", \"degerlendirme\", \"referans\", \"rakipler\", \"ekip\", \"not_metni\", \"link\", \"katilimcilar\"]\n    }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [780, 700],
+      "id": "36ec696f-f0c5-42b1-904e-4d1ec9935315",
+      "name": "Alan Dağılımı Analizi"
+    },
+    {
+      "parameters": {
+        "description": "Değerlendirme alanı odaklı genel portföy analizi.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\nconst hedefDeg = n(p.degerlendirme);\nconst hedefAna = n(p.ana_kategori);\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\n\nfunction grupla(alan) {\n  const sonuc = {};\n  for (const f of tum) {\n    const ham = f[alan];\n    const deger = (ham === null || ham === undefined || String(ham).trim() === '') ? 'Belirtilmemiş' : String(ham);\n    sonuc[deger] = (sonuc[deger] || 0) + 1;\n  }\n  return Object.entries(sonuc)\n    .sort((a, b) => b[1] - a[1])\n    .map(([deger, adet]) => ({ deger, adet, yuzde: tum.length ? Math.round((adet / tum.length) * 1000) / 10 : 0 }));\n}\n\nconst capraz = {};\nfor (const f of tum) {\n  const kat = (f['Ana Kategori'] && String(f['Ana Kategori']).trim()) || 'Belirtilmemiş';\n  const deg = (f['Değerlendirme'] && String(f['Değerlendirme']).trim()) || 'Belirtilmemiş';\n  if (!capraz[kat]) capraz[kat] = {};\n  capraz[kat][deg] = (capraz[kat][deg] || 0) + 1;\n}\n\nconst cevap = {\n  toplam_firma_sayisi: tum.length,\n  degerlendirme_dagilimi: grupla('Değerlendirme'),\n  ana_kategori_x_degerlendirme: capraz\n};\n\nlet liste = tum;\nif (hedefDeg) liste = liste.filter(f => n(f['Değerlendirme']).includes(hedefDeg));\nif (hedefAna) liste = liste.filter(f => n(f['Ana Kategori']).includes(hedefAna));\n\nif (hedefDeg || hedefAna) {\n  const dilim = liste.slice(offset, offset + 15).map(f => ({\n    'Firma Adı': f['Firma Adı'],\n    'Ana Kategori': f['Ana Kategori'],\n    'Alt Kategori': f['Alt Kategori'],\n    'Değerlendirme': f['Değerlendirme'],\n    'İletildiği Kanal': f['İletildiği Kanal'],\n    'Referans': f['Referans']\n  }));\n  cevap.filtreli_toplam = liste.length;\n  cevap.offset = offset;\n  cevap.gosterilen_kayit_sayisi = dilim.length;\n  cevap.daha_var = offset + dilim.length < liste.length;\n  cevap.kayitlar = dilim;\n}\n\nreturn JSON.stringify(cevap);",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"degerlendirme\": { \"type\": \"string\" },\n    \"ana_kategori\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [940, 700],
+      "id": "a1111111-dege-4rle-9ndi-rme000000001",
+      "name": "Değerlendirme ve Genel Analiz"
+    },
+    {
+      "parameters": {
+        "description": "Firma Açıklaması ve Not alanlarında serbest anahtar kelime araması.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : { arama_metni: query };\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\nconst arama = n(p.arama_metni);\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\nif (!arama) return JSON.stringify({ hata: 'Arama metni boş olamaz.' });\n\nconst kelimeler = arama.split(/\\s+/).filter(Boolean);\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\n\nconst eslesen = tum.filter(f => {\n  const metin = n([f['Firma Adı'], f['Firma Açıklaması'], f['Not'], f['Ana Kategori'], f['Alt Kategori'], f['Referans']].filter(Boolean).join(' '));\n  return kelimeler.every(k => metin.includes(k)) || kelimeler.some(k => metin.includes(k));\n});\n\nconst dilim = eslesen.slice(offset, offset + 15).map(f => ({\n  'Firma Adı': f['Firma Adı'],\n  'Ana Kategori': f['Ana Kategori'],\n  'Alt Kategori': f['Alt Kategori'],\n  'Değerlendirme': f['Değerlendirme'],\n  'Firma Açıklaması': f['Firma Açıklaması'],\n  'Not': f['Not']\n}));\n\nreturn JSON.stringify({\n  arama_metni: p.arama_metni,\n  toplam_eslesen_sayisi: eslesen.length,\n  offset,\n  gosterilen_kayit_sayisi: dilim.length,\n  daha_var: offset + dilim.length < eslesen.length,\n  kayitlar: dilim\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"arama_metni\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": [\"arama_metni\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [1100, 700],
+      "id": "2d4ab8ed-19b4-49b3-a033-360dc485a41d",
+      "name": "Açıklama ve Not Arama"
+    },
+    {
+      "parameters": {
+        "description": "Görüşme Tarihi veya Yol Haritası Giriş Tarihi alanına göre filtre.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst alanMap = {\n  gorusme_tarihi: 'Görüşme Tarihi',\n  yol_haritasi_giris_tarihi: 'Yol Haritası Giriş Tarihi'\n};\nconst alan = alanMap[(p.tarih_alani || '').toString().trim().toLocaleLowerCase('tr')];\nif (!alan) {\n  return JSON.stringify({ hata: \"tarih_alani 'gorusme_tarihi' veya 'yol_haritasi_giris_tarihi' olmalı.\" });\n}\n\nfunction tarihiCoz(deger) {\n  if (!deger) return null;\n  const d = new Date(deger);\n  return isNaN(d.getTime()) ? null : d;\n}\n\nconst yil = p.yil ? parseInt(p.yil, 10) : null;\nconst baslangic = tarihiCoz(p.baslangic_tarihi);\nconst bitis = tarihiCoz(p.bitis_tarihi);\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\n\nif (!yil && !baslangic && !bitis) {\n  return JSON.stringify({ hata: 'En az yil, baslangic_tarihi veya bitis_tarihi gerekli.' });\n}\n\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\nconst eslesen = tum.filter(f => {\n  const tarih = tarihiCoz(f[alan]);\n  if (!tarih) return false;\n  if (yil && tarih.getFullYear() !== yil) return false;\n  if (baslangic && tarih < baslangic) return false;\n  if (bitis && tarih > bitis) return false;\n  return true;\n});\n\nconst dilim = eslesen.slice(offset, offset + 15).map(f => ({\n  'Firma Adı': f['Firma Adı'],\n  [alan]: f[alan],\n  'Ana Kategori': f['Ana Kategori'],\n  'Değerlendirme': f['Değerlendirme'],\n  'Katılımcılar': f['Katılımcılar']\n}));\n\nreturn JSON.stringify({\n  tarih_alani: alan,\n  toplam_eslesen_sayisi: eslesen.length,\n  offset,\n  gosterilen_kayit_sayisi: dilim.length,\n  daha_var: offset + dilim.length < eslesen.length,\n  kayitlar: dilim\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"tarih_alani\": {\n      \"type\": \"string\",\n      \"enum\": [\"gorusme_tarihi\", \"yol_haritasi_giris_tarihi\"]\n    },\n    \"baslangic_tarihi\": { \"type\": \"string\" },\n    \"bitis_tarihi\": { \"type\": \"string\" },\n    \"yil\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": [\"tarih_alani\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [1260, 700],
+      "id": "a3116ae2-e812-48d5-b35a-c238d134593e",
+      "name": "Tarihe Göre Filtrele"
+    },
+    {
+      "parameters": {
+        "description": "Referans, Rakipler, Ekip veya Katılımcılar alanlarında arama.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\nconst tipMap = {\n  referans: 'Referans',\n  rakip: 'Rakipler',\n  ekip: 'Ekip',\n  katilimci: 'Katılımcılar'\n};\nconst alan = tipMap[(p.arama_tipi || '').toString().trim().toLocaleLowerCase('tr')];\nconst aranan = n(p.arama_metni);\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\n\nif (!alan) return JSON.stringify({ hata: \"arama_tipi 'referans', 'rakip', 'ekip' veya 'katilimci' olmalı.\" });\nif (!aranan) return JSON.stringify({ hata: 'arama_metni boş olamaz.' });\n\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\nconst eslesen = tum.filter(f => n(f[alan]).includes(aranan));\nconst dilim = eslesen.slice(offset, offset + 15).map(f => ({\n  'Firma Adı': f['Firma Adı'],\n  [alan]: f[alan],\n  'Ana Kategori': f['Ana Kategori'],\n  'Değerlendirme': f['Değerlendirme'],\n  'İletildiği Kanal': f['İletildiği Kanal']\n}));\n\nreturn JSON.stringify({\n  arama_tipi: alan,\n  arama_metni: p.arama_metni,\n  toplam_eslesen_sayisi: eslesen.length,\n  offset,\n  gosterilen_kayit_sayisi: dilim.length,\n  daha_var: offset + dilim.length < eslesen.length,\n  kayitlar: dilim\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"arama_tipi\": {\n      \"type\": \"string\",\n      \"enum\": [\"referans\", \"rakip\", \"ekip\", \"katilimci\"]\n    },\n    \"arama_metni\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": [\"arama_tipi\", \"arama_metni\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [1420, 700],
+      "id": "f10365b0-8fd8-4978-89db-8ca866560c3e",
+      "name": "İlişki Arama"
+    },
+    {
+      "parameters": {
+        "description": "Link alanını getirir.",
+        "jsCode": "const p = (typeof query === 'object' && query !== null) ? query : {};\nconst n = (s) => (s || '').toString().trim().toLocaleLowerCase('tr');\nconst aranan = n(p.firma_adi);\nconst offset = Math.max(0, parseInt(p.offset || '0', 10) || 0);\nconst tum = $('Tüm Firmaları Getir').all().map(i => i.json);\n\nlet eslesen;\nif (aranan) {\n  eslesen = tum.filter(f => {\n    const ad = n(f['Firma Adı']);\n    return ad === aranan || ad.includes(aranan) || aranan.includes(ad);\n  });\n} else {\n  eslesen = tum.filter(f => f['Link'] && String(f['Link']).trim() !== '');\n}\n\nconst dilim = eslesen.slice(offset, offset + 15).map(f => ({\n  'Firma Adı': f['Firma Adı'],\n  'Link': f['Link'],\n  'Ana Kategori': f['Ana Kategori'],\n  'Değerlendirme': f['Değerlendirme']\n}));\n\nreturn JSON.stringify({\n  toplam_eslesen_sayisi: eslesen.length,\n  offset,\n  gosterilen_kayit_sayisi: dilim.length,\n  daha_var: offset + dilim.length < eslesen.length,\n  kayitlar: dilim\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"firma_adi\": { \"type\": \"string\" },\n    \"offset\": { \"type\": \"string\" }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [1580, 700],
+      "id": "c2222222-link-4get-9ir0-000000000002",
+      "name": "Link Getir"
+    }
+  ],
+  "connections": {
+    "Sohbet Mesajı Alındığında": {
+      "main": [[{ "node": "Tüm Firmaları Getir", "type": "main", "index": 0 }]]
+    },
+    "Tüm Firmaları Getir": {
+      "main": [[{ "node": "Firma Veritabanı Asistanı", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Sohbet Hafızası (Son 10 Mesaj)": {
+      "ai_memory": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_memory", "index": 0 }]]
+    },
+    "Firma Bilgisi Getir": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Alana Göre Filtrele": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Alan Dağılımı Analizi": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Değerlendirme ve Genel Analiz": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Açıklama ve Not Arama": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Tarihe Göre Filtrele": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "İlişki Arama": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    },
+    "Link Getir": {
+      "ai_tool": [[{ "node": "Firma Veritabanı Asistanı", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
