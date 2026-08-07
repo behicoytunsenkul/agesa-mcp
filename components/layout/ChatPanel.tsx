@@ -118,9 +118,6 @@ export function ChatPanel() {
                 </span>
               )}
             </h2>
-            <p className="truncate text-[11px] text-[var(--muted)]">
-              {sessionId ? `${sessionId.slice(0, 8)}…` : "oturum hazırlanıyor"}
-            </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             <button
