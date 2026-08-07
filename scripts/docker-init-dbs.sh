@@ -1,11 +1,11 @@
 #!/bin/bash
+# İlk volume oluşturmada çalışır (POSTGRES_DB=n8n zaten var)
 set -euo pipefail
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-  CREATE DATABASE n8n;
-  CREATE DATABASE firma_asistani;
-EOSQL
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  -c "CREATE DATABASE firma_asistani;"
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname firma_asistani -f /schemas/schema.sql
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname firma_asistani \
+  -f /schemas/schema.sql
 
-echo "Init OK: databases n8n + firma_asistani"
+echo "Init OK: n8n (default) + firma_asistani + schema"

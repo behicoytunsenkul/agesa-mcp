@@ -1,39 +1,33 @@
-# Yerel Stack — Postgres + Redis + n8n
+# Sıfırdan kurulum (tek komut)
 
-Pull sonrası **hiçbir değeri elle değiştirmeden**:
+Eski volume / karışık container’ları silip temiz kurar.
 
 ```bash
 cd ~/VeriTabaniMCP/agesa-mcp
 git pull
-chmod +x scripts/bootstrap.sh
-./scripts/bootstrap.sh
+chmod +x scripts/bootstrap.sh scripts/docker-init-dbs.sh
+./scripts/bootstrap.sh --reset
 npm run build && npm run start
 ```
 
-| Servis | Container | Host port |
-|--------|-----------|-----------|
-| PostgreSQL | `postgres` | **5433** → 5432 |
-| Redis | `redis` | (iç) 6379 |
-| n8n | `n8n` | **5678** |
+## Ne kurulur?
 
-> n8n `EXECUTIONS_MODE=regular` (tek container; queue/worker kaldırıldı — restart loop önlemek için).
+| Servis | User / Pass | Not |
+|--------|-------------|-----|
+| Postgres | `root` / `123456` | Host port **5433** |
+| DB `n8n` | — | n8n kendi verisi |
+| DB `firma_asistani` | — | Next.js + n8n firma sorguları |
+| Redis | — | yardımcı |
+| n8n UI | — | port **5678** |
 
-## Port kuralı
+## Env (repoda hazır)
 
-| Nereden | Host | Port | Database |
-|---------|------|------|----------|
-| Next.js (host) | `127.0.0.1` | **5433** | `firma_asistani` |
-| n8n credential (Docker) | `postgres` | **5432** | `firma_asistani` |
-| n8n kendi DB’si | `postgres` | 5432 | `n8n` (compose ayarlı) |
-
-`.env.local` (bootstrap otomatik kopyalar):
-
-```env
+```
 DATABASE_URL=postgresql://root:123456@127.0.0.1:5433/firma_asistani
 N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 ```
 
-## n8n credential (firma)
+## n8n credential
 
 | Alan | Değer |
 |------|--------|
@@ -44,22 +38,12 @@ N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 | Password | `123456` |
 | SSL | Disable |
 
-Workflow: `n8n/firma-veritabani-asistani.json` → Active.
-
-## Manuel (bootstrap olmadan)
+## Kontrol
 
 ```bash
-mkdir -p data/n8n-files
-docker network rm n8n_network 2>/dev/null || true
-cp -n .env.example .env.local
-docker compose up -d
-npm install && npm run db:setup
-npm run build && npm run start
+docker compose ps
+npm run db:ping
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5678
 ```
 
-## Sıfırdan volume
-
-```bash
-docker compose down -v
-./scripts/bootstrap.sh
-```
+Beklenen: `postgres`, `redis`, `n8n` hepsi **Up** (Restarting değil).

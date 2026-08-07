@@ -1,58 +1,77 @@
 #!/usr/bin/env bash
-# Tek komut: stack + env + schema
+# Sıfırdan kurulum: ./scripts/bootstrap.sh --reset
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "==> Klasörler"
-mkdir -p data/n8n-files
-
-echo "==> Eski çakışan Docker ağı (varsa)"
-docker network rm n8n_network 2>/dev/null || true
-
-echo "==> .env.local"
-if [[ ! -f .env.local ]]; then
-  cp .env.example .env.local
-  echo "    oluşturuldu (.env.example → .env.local)"
-else
-  echo "    mevcut, dokunulmadı"
+RESET=0
+if [[ "${1:-}" == "--reset" ]]; then
+  RESET=1
 fi
 
-echo "==> Docker compose up"
+echo "==> 1) Klasörler"
+mkdir -p data/n8n-files
+
+echo "==> 2) Env dosyaları"
+cp -f .env.example .env
+cp -f .env.example .env.local
+echo "    .env ve .env.local yazıldı"
+
+echo "==> 3) Eski stack temizliği"
+docker compose down 2>/dev/null || true
+docker rm -f n8n n8n-worker postgres redis 2>/dev/null || true
+docker network rm n8n_network 2>/dev/null || true
+docker network rm agesa-mcp_n8n_network 2>/dev/null || true
+
+if [[ "$RESET" -eq 1 ]]; then
+  echo "    --reset: volume'lar siliniyor (temiz Postgres)"
+  docker compose down -v 2>/dev/null || true
+  docker volume rm agesa-mcp_postgres_data agesa-mcp_redis_data agesa-mcp_n8n_data 2>/dev/null || true
+fi
+
+echo "==> 4) Docker compose up"
 docker compose up -d
 
-echo "==> Postgres hazır olana kadar bekleniyor"
-for i in $(seq 1 60); do
-  if docker exec postgres pg_isready -U root -d postgres >/dev/null 2>&1; then
-    echo "    postgres OK"
+echo "==> 5) Postgres bekleniyor (root / n8n)"
+ok=0
+for i in $(seq 1 90); do
+  if docker exec postgres pg_isready -U root -d n8n >/dev/null 2>&1; then
+    echo "    postgres OK ($i sn)"
+    ok=1
     break
   fi
   sleep 1
-  if [[ "$i" -eq 60 ]]; then
-    echo "Postgres ayağa kalkmadı. Log: docker logs postgres"
-    exit 1
-  fi
 done
+if [[ "$ok" -ne 1 ]]; then
+  echo "HATA: postgres ayağa kalkmadı"
+  docker logs postgres --tail 50 || true
+  exit 1
+fi
 
-# Init script ilk volume'da DB oluşturur; eski volume'da DB yoksa oluştur
-docker exec postgres psql -U root -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='firma_asistani'" | grep -q 1 \
-  || docker exec postgres psql -U root -d postgres -c "CREATE DATABASE firma_asistani;"
-docker exec postgres psql -U root -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='n8n'" | grep -q 1 \
-  || docker exec postgres psql -U root -d postgres -c "CREATE DATABASE n8n;"
+echo "==> 6) firma_asistani DB (yoksa)"
+docker exec postgres psql -U root -d n8n -c "CREATE DATABASE firma_asistani;" 2>/dev/null || echo "    firma_asistani zaten var"
 
-echo "==> npm install"
+echo "==> 7) npm install"
 npm install
 
-echo "==> Schema"
+echo "==> 8) Schema (Next.js tabloları)"
 npm run db:setup
 
+echo "==> 9) Durum"
+docker compose ps
+
 echo ""
-echo "Hazır."
-echo "  docker compose ps"
+echo "============================================"
+echo "  KURULUM TAMAM"
+echo "============================================"
 echo "  npm run build && npm run start"
-echo "  Portal: http://SUNUCU_IP:3000"
-echo "  n8n:    http://SUNUCU_IP:5678"
+echo "  Portal : http://SUNUCU_IP:3000"
+echo "  n8n    : http://SUNUCU_IP:5678"
+echo "  Login  : deneme-user@test.com / DenemeUser123"
 echo ""
-echo "n8n Postgres credential:"
-echo "  Host=postgres Port=5432 DB=firma_asistani User=root Pass=123456 SSL=off"
+echo "  n8n Postgres credential:"
+echo "    Host=postgres Port=5432"
+echo "    Database=firma_asistani"
+echo "    User=root Password=123456 SSL=off"
+echo "============================================"

@@ -1,10 +1,10 @@
-# AgeSA MCP — Postgres + Redis + n8n
+# AgeSA MCP — Postgres + Redis + n8n (sıfırdan çalışır)
 #
-# Host (Next.js):
+# Next.js (.env / .env.local):
 #   DATABASE_URL=postgresql://root:123456@127.0.0.1:5433/firma_asistani
 #   N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 #
-# n8n Postgres credential (firma):
+# n8n firma credential:
 #   Host=postgres  Port=5432  DB=firma_asistani  User=root  Pass=123456  SSL=off
 
 services:
@@ -15,7 +15,8 @@ services:
     environment:
       POSTGRES_USER: root
       POSTGRES_PASSWORD: "123456"
-      POSTGRES_DB: postgres
+      # n8n kendi DB'si — ilk açılışta hazır
+      POSTGRES_DB: n8n
     ports:
       - "5433:5432"
     volumes:
@@ -23,15 +24,11 @@ services:
       - ./scripts/docker-init-dbs.sh:/docker-entrypoint-initdb.d/01-init-dbs.sh:ro
       - ./scripts/schema.sql:/schemas/schema.sql:ro
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U root -d postgres && psql -U root -d postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='n8n'\" | grep -q 1",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U root -d n8n"]
       interval: 5s
       timeout: 5s
       retries: 30
-      start_period: 15s
+      start_period: 20s
     networks:
       - n8n_network
 
@@ -64,7 +61,6 @@ services:
       N8N_SECURE_COOKIE: "false"
       N8N_ENCRYPTION_KEY: agesa-mcp-local-encryption-key-32
       WEBHOOK_URL: http://127.0.0.1:5678/
-      # regular = tek container, restart loop yok (queue için ayrı worker gerekir)
       EXECUTIONS_MODE: regular
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
