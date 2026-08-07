@@ -193,7 +193,7 @@ export function ChatPanel() {
                 }
               }}
               rows={chatExpanded ? 4 : 3}
-              placeholder="Firma sor… veya «sohbeti büyüt» yaz"
+              placeholder="OmniAgent ile sohbet edin"
               className="w-full resize-none rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--amber)]"
               disabled={!sessionId || sending}
             />
