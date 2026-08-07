@@ -2,14 +2,17 @@ import { config as loadEnv } from "dotenv";
 import { existsSync, readFileSync } from "fs";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import pg from "pg";
+import { neonConfig, Pool } from "@neondatabase/serverless";
+import ws from "ws";
+
+neonConfig.webSocketConstructor = ws;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
 for (const name of [".env.local", ".env"]) {
   const full = join(root, name);
-  if (existsSync(full)) loadEnv({ path: full, override: false });
+  if (existsSync(full)) loadEnv({ path: full, override: false, quiet: true });
 }
 
 const connectionString = process.env.DATABASE_URL?.trim();
@@ -20,19 +23,15 @@ if (!connectionString) {
 }
 
 const sql = readFileSync(join(__dirname, "schema.sql"), "utf8");
-const client = new pg.Client({
-  connectionString,
-  ssl:
-    connectionString.includes("sslmode=require") ||
-    connectionString.includes("neon.tech")
-      ? { rejectUnauthorized: false }
-      : undefined,
-});
+const pool = new Pool({ connectionString });
 
-await client.connect();
 try {
-  await client.query(sql);
+  // Neon WS üzerinden (443); 5432 firewall engeline takılmaz
+  await pool.query(sql);
   console.log("Schema uygulandı: firmalar + chat_sessions + chat_messages");
+} catch (err) {
+  console.error("Schema hatası:", err);
+  process.exit(1);
 } finally {
-  await client.end();
+  await pool.end();
 }

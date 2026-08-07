@@ -1,15 +1,18 @@
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "fs";
 import { resolve } from "path";
-import { Pool, type QueryResultRow } from "pg";
+import { neonConfig, Pool, type QueryResultRow } from "@neondatabase/serverless";
+import ws from "ws";
+
+// Node.js: Neon üzerinden WebSocket (443) — kurumsal ağlarda 5432 engelli olsa da çalışır
+neonConfig.webSocketConstructor = ws;
 
 function loadEnvFiles() {
   const root = process.cwd();
-  // Production + local: ensure DATABASE_URL is available even if Next didn't inject it
   for (const name of [".env.local", ".env"]) {
     const full = resolve(root, name);
     if (existsSync(full)) {
-      loadEnv({ path: full, override: false });
+      loadEnv({ path: full, override: false, quiet: true });
     }
   }
 }
@@ -28,14 +31,8 @@ function createPool() {
     );
   }
 
-  const needsSsl =
-    connectionString.includes("sslmode=require") ||
-    connectionString.includes("neon.tech") ||
-    connectionString.includes("sslmode=verify");
-
   return new Pool({
     connectionString,
-    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
     max: 10,
   });
 }
