@@ -30,6 +30,11 @@ body {
   box-sizing: border-box;
 }
 
+.writing-mode-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
 .chat-html {
   line-height: 1.55;
   word-break: break-word;

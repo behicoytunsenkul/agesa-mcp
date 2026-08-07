@@ -23,7 +23,7 @@
       "position": [80, 400],
       "id": "6166f311-1c06-431c-becc-339b9e668a9f",
       "name": "Tüm Firmaları Getir",
-      "notes": "Host=postgres Port=5432 DB=firma_asistani User=root Pass=123456 SSL=off (n8n kendi DB=SQLite)"
+      "notes": "Credential: Local Postgres — Host 127.0.0.1, DB firma_asistani, User agesa"
     },
     {
       "parameters": {
