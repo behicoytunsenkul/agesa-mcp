@@ -1,18 +1,50 @@
 import type { Metadata } from "next";
-import { Libre_Baskerville, Source_Sans_3 } from "next/font/google";
+import localFont from "next/font/local";
 import { AppShell } from "@/components/layout/AppShell";
 import "./globals.css";
 
-const display = Libre_Baskerville({
+const display = localFont({
+  src: [
+    {
+      path: "./fonts/libre-baskerville-400.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/libre-baskerville-700.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["400", "700"],
+  display: "swap",
 });
 
-const body = Source_Sans_3({
+const body = localFont({
+  src: [
+    {
+      path: "./fonts/source-sans-3-400.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/source-sans-3-500.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/source-sans-3-600.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/source-sans-3-700.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
