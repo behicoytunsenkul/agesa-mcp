@@ -1,26 +1,142 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --navy: #0b1f3a;
+  --navy-fg: #f5f7fa;
+  --amber: #d4a017;
+  --canvas: #eef1f5;
+  --surface: #f7f8fa;
+  --ink: #1a2332;
+  --muted: #5c6b7a;
+  --border: #d5dbe3;
+  --background: var(--canvas);
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.chat-html {
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.chat-html p {
+  margin: 0 0 0.65em;
+}
+
+.chat-html p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-html ul,
+.chat-html ol {
+  margin: 0.4em 0 0.75em;
+  padding-left: 1.25em;
+}
+
+.chat-html li {
+  margin: 0.2em 0;
+}
+
+.chat-html h1,
+.chat-html h2,
+.chat-html h3,
+.chat-html h4 {
+  margin: 0.75em 0 0.35em;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.3;
+}
+
+.chat-html h1 {
+  font-size: 1.15em;
+}
+
+.chat-html h2 {
+  font-size: 1.05em;
+}
+
+.chat-html h3,
+.chat-html h4 {
+  font-size: 1em;
+}
+
+.chat-html a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.chat-html strong,
+.chat-html b {
+  font-weight: 700;
+}
+
+.chat-html code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--surface);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.chat-html pre {
+  margin: 0.5em 0;
+  padding: 0.65em 0.75em;
+  overflow-x: auto;
+  background: var(--surface);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.chat-html pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.chat-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+}
+
+.chat-html th,
+.chat-html td {
+  border: 1px solid var(--border);
+  padding: 0.35em 0.5em;
+  text-align: left;
+}
+
+.chat-html th {
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.chat-html hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0.75em 0;
+}
+
+.chat-html blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.75em;
+  border-left: 3px solid var(--amber);
+  color: var(--muted);
 }

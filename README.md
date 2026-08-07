@@ -1,36 +1,109 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgeSA MCP Online
 
-## Getting Started
+Neon PostgreSQL üzerindeki firma veritabanı için Next.js portal: Dashboard, Datas (CRUD + Excel import/export), Logs ve sağ panoda OmniAgent (n8n).
 
-First, run the development server:
+## Özellikler
+
+- **Dashboard** — kategori / değerlendirme / kanal / pipeline özetleri
+- **Datas** — tablo, düzenleme, silme, Excel import/export, gelişmiş filtreler
+- **Logs** — chat session geçmişi ve transcript
+- **OmniAgent** — n8n Chat Trigger webhook üzerinden AI asistan
+- **Login** — demo kullanıcı girişi + “beni hatırla”
+
+## Gereksinimler
+
+- Node.js 20+ (önerilen: 22)
+- Neon / PostgreSQL connection string
+- n8n Chat Trigger webhook URL
+
+## Kurulum (lokal)
 
 ```bash
+git clone https://github.com/behicoytunsenkul/agesa-mcp.git
+cd agesa-mcp
+npm install
+cp .env.example .env.local
+# DATABASE_URL ve N8N_CHAT_URL değerlerini doldurun
+npm run db:setup
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Açık adres: [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Ortam değişkenleri
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Değişken | Açıklama |
+|----------|----------|
+| `DATABASE_URL` | Neon / PostgreSQL connection string |
+| `N8N_CHAT_URL` | n8n Chat Trigger webhook URL |
 
-## Learn More
+`.env.local` asla commit edilmez. Örnek için `.env.example` kullanın.
 
-To learn more about Next.js, take a look at the following resources:
+## Production (Linux sunucu)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+# 1) Sistem paketleri
+sudo apt update
+sudo apt install -y git curl
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# 2) Node.js 22 (NodeSource)
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
 
-## Deploy on Vercel
+# 3) Repo
+git clone https://github.com/behicoytunsenkul/agesa-mcp.git
+cd agesa-mcp
+npm install
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# 4) Env
+cp .env.example .env.local
+nano .env.local   # DATABASE_URL ve N8N_CHAT_URL girin
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# 5) DB şeması
+npm run db:setup
+
+# 6) Build + start
+npm run build
+npm run start     # varsayılan http://0.0.0.0:3000 değilse PORT=3000 npm run start
+```
+
+PM2 ile arka planda çalıştırma:
+
+```bash
+sudo npm i -g pm2
+pm2 start npm --name agesa-mcp -- start
+pm2 save
+pm2 startup
+```
+
+Nginx reverse proxy örneği (`/etc/nginx/sites-available/agesa-mcp`):
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/agesa-mcp /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+## n8n
+
+Chat Trigger **Embedded Chat** + public olmalı. CORS için sunucu origin’inizi veya `*` ekleyin.
+
+## Demo login
+
+Uygulama içi demo kullanıcı `lib/auth.ts` içinde tanımlıdır. Production’da bunları değiştirmeniz önerilir.
