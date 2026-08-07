@@ -87,9 +87,11 @@ export function DashboardView() {
     return (
       <PageFrame title="Dashboard">
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error || "Veri yok"}
-          <p className="mt-2 text-[var(--muted)]">
-            DATABASE_URL tanımlı mı ve <code>scripts/schema.sql</code> çalıştırıldı mı?
+          <p className="font-semibold">Veri yüklenemedi</p>
+          <p className="mt-1 break-words">{error || "Bilinmeyen hata"}</p>
+          <p className="mt-3 text-[var(--muted)]">
+            Sunucuda sırayla deneyin:{" "}
+            <code className="text-xs">git pull && npm run db:setup && npm run build && npm run start</code>
           </p>
         </div>
       </PageFrame>
