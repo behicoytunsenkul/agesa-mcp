@@ -1,0 +1,27 @@
+# Sadece Redis
+# Başlat: docker compose -f docker-compose.redis.yml up -d
+# Önce ağ: docker network create agesa_net  (yoksa)
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks:
+      - agesa_net
+
+volumes:
+  redis_data:
+
+networks:
+  agesa_net:
+    external: true
+    name: agesa_net

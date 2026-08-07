@@ -1,33 +1,40 @@
-# Sıfırdan kurulum (tek komut)
+# Üç ayrı compose — sıfırdan
 
-Eski volume / karışık container’ları silip temiz kurar.
+| Dosya | Servis |
+|-------|--------|
+| `docker-compose.postgres.yml` | PostgreSQL (`root` / `123456`, port **5433**) |
+| `docker-compose.redis.yml` | Redis |
+| `docker-compose.n8n.yml` | n8n (**SQLite** — kendi DB’si Postgres değil → restart olmaz) |
+
+Ortak ağ: `agesa_net`
+
+## Sıfırdan kur (tek komut)
 
 ```bash
 cd ~/VeriTabaniMCP/agesa-mcp
 git pull
-chmod +x scripts/bootstrap.sh scripts/docker-init-dbs.sh
-./scripts/bootstrap.sh --reset
+chmod +x scripts/*.sh
+./scripts/stack-reset.sh
 npm run build && npm run start
 ```
 
-## Ne kurulur?
+## Ayrı ayrı
 
-| Servis | User / Pass | Not |
-|--------|-------------|-----|
-| Postgres | `root` / `123456` | Host port **5433** |
-| DB `n8n` | — | n8n kendi verisi |
-| DB `firma_asistani` | — | Next.js + n8n firma sorguları |
-| Redis | — | yardımcı |
-| n8n UI | — | port **5678** |
+```bash
+docker network create agesa_net
+docker compose -f docker-compose.postgres.yml up -d
+docker compose -f docker-compose.redis.yml up -d
+docker compose -f docker-compose.n8n.yml up -d
+```
 
-## Env (repoda hazır)
+## Env (repoda)
 
 ```
 DATABASE_URL=postgresql://root:123456@127.0.0.1:5433/firma_asistani
 N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 ```
 
-## n8n credential
+## n8n credential (firma)
 
 | Alan | Değer |
 |------|--------|
@@ -38,12 +45,4 @@ N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 | Password | `123456` |
 | SSL | Disable |
 
-## Kontrol
-
-```bash
-docker compose ps
-npm run db:ping
-curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:5678
-```
-
-Beklenen: `postgres`, `redis`, `n8n` hepsi **Up** (Restarting değil).
+> n8n kendi ayarları SQLite’ta; Postgres sadece firma verisi + Next.js içindir.

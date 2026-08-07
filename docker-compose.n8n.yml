@@ -1,0 +1,40 @@
+# Sadece n8n — kendi verisi SQLite (Postgres'e bağlanmaz → restart loop olmaz)
+# Başlat: docker compose -f docker-compose.n8n.yml up -d
+# Önce: postgres + redis ayakta, ağ agesa_net mevcut
+#
+# UI: http://SUNUCU_IP:5678
+# Firma sorguları için n8n içinde AYRI credential:
+#   Host=postgres Port=5432 DB=firma_asistani User=root Pass=123456 SSL=off
+
+services:
+  n8n:
+    image: n8nio/n8n:1.82.1
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      N8N_LISTEN_ADDRESS: 0.0.0.0
+      N8N_SECURE_COOKIE: "false"
+      N8N_ENCRYPTION_KEY: agesa-mcp-local-encryption-key-32
+      WEBHOOK_URL: http://127.0.0.1:5678/
+      GENERIC_TIMEZONE: Europe/Istanbul
+      TZ: Europe/Istanbul
+      # SQLite varsayılan — DB_TYPE / postgres YOK (restart sebebi buydu)
+      EXECUTIONS_MODE: regular
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - agesa_net
+
+volumes:
+  n8n_data:
+
+networks:
+  agesa_net:
+    external: true
+    name: agesa_net

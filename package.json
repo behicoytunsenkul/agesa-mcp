@@ -9,9 +9,10 @@
     "lint": "eslint",
     "db:setup": "node scripts/run-schema.mjs",
     "db:ping": "node scripts/db-ping.mjs",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
-    "stack:bootstrap": "bash scripts/bootstrap.sh"
+    "db:up": "bash scripts/stack-up.sh",
+    "db:down": "bash scripts/stack-down.sh",
+    "stack:reset": "bash scripts/stack-reset.sh",
+    "stack:bootstrap": "bash scripts/stack-reset.sh"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
