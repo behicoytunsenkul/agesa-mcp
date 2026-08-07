@@ -22,6 +22,7 @@ type ChatContextValue = {
   messages: UiMessage[];
   sending: boolean;
   sendMessage: (text: string) => Promise<void>;
+  appendLocalExchange: (userText: string, assistantText: string) => void;
   newSession: () => void;
   loadSession: (id: string) => Promise<void>;
 };
@@ -81,6 +82,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  const appendLocalExchange = useCallback(
+    (userText: string, assistantText: string) => {
+      const t = Date.now();
+      setMessages((prev) => [
+        ...prev,
+        { id: `lu-${t}`, role: "user", content: userText },
+        { id: `la-${t}`, role: "assistant", content: assistantText },
+      ]);
+    },
+    []
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       const trimmed = text.trim();
@@ -136,10 +149,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       messages,
       sending,
       sendMessage,
+      appendLocalExchange,
       newSession,
       loadSession,
     }),
-    [sessionId, messages, sending, sendMessage, newSession, loadSession]
+    [
+      sessionId,
+      messages,
+      sending,
+      sendMessage,
+      appendLocalExchange,
+      newSession,
+      loadSession,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
