@@ -10,7 +10,8 @@
     "db:setup": "node scripts/run-schema.mjs",
     "db:ping": "node scripts/db-ping.mjs",
     "db:up": "docker compose up -d",
-    "db:down": "docker compose down"
+    "db:down": "docker compose down",
+    "stack:bootstrap": "bash scripts/bootstrap.sh"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

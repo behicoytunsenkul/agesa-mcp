@@ -20,17 +20,16 @@ Neon PostgreSQL üzerindeki firma veritabanı için Next.js portal: Dashboard, D
 
 Tam kurulum: [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md)
 
-Özet:
-
 ```bash
 git pull
-docker compose up -d
-cp .env.example .env.local   # local Postgres + local n8n URL
-npm install && npm run db:setup && npm run build && npm run start
+chmod +x scripts/bootstrap.sh
+./scripts/bootstrap.sh
+npm run build && npm run start
 ```
 
-n8n workflow: [n8n/firma-veritabani-asistani.json](n8n/firma-veritabani-asistani.json)  
-Postgres credential’ı Neon yerine `127.0.0.1:5433` / `firma_asistani` / user `root` yapın.
+Env hazır gelir (`root` / `123456` / port **5433**).  
+n8n credential: Host=`postgres` Port=`5432` DB=`firma_asistani` User=`root` Pass=`123456` SSL=off  
+Workflow: [n8n/firma-veritabani-asistani.json](n8n/firma-veritabani-asistani.json)
 
 ## Kurulum (lokal geliştirme)
 
