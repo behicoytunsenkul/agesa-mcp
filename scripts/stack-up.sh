@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Servisleri sırayla aç (volume silmez)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-
 docker network create agesa_net 2>/dev/null || true
 docker compose -f docker-compose.postgres.yml up -d
 docker compose -f docker-compose.redis.yml up -d

@@ -1,6 +1,5 @@
 # Sadece Redis
-# Başlat: docker compose -f docker-compose.redis.yml up -d
-# Önce ağ: docker network create agesa_net  (yoksa)
+# docker compose -f docker-compose.redis.yml up -d
 
 services:
   redis:
@@ -24,4 +23,3 @@ volumes:
 networks:
   agesa_net:
     external: true
-    name: agesa_net

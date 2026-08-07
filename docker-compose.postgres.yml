@@ -1,8 +1,6 @@
 # Sadece PostgreSQL
-# Başlat: docker compose -f docker-compose.postgres.yml up -d
-#
-# Host → Next.js: postgresql://root:123456@127.0.0.1:5433/firma_asistani
-# Container → n8n credential: Host=postgres Port=5432 DB=firma_asistani User=root Pass=123456
+# docker compose -f docker-compose.postgres.yml up -d
+# Önce: docker network create agesa_net
 
 services:
   postgres:
@@ -33,5 +31,4 @@ volumes:
 
 networks:
   agesa_net:
-    name: agesa_net
-    driver: bridge
+    external: true
