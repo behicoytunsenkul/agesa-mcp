@@ -30,15 +30,15 @@ services:
       N8N_HOST: 0.0.0.0
       N8N_PORT: 5678
       N8N_PROTOCOL: http
-      # SUNUCU_IP'yi kendi IP'nizle değiştirin (ör. 10.x.x.x)
+      N8N_SECURE_COOKIE: "false"
       WEBHOOK_URL: http://127.0.0.1:5678/
       GENERIC_TIMEZONE: Europe/Istanbul
       TZ: Europe/Istanbul
     volumes:
       - n8n_data:/home/node/.n8n
+    # Postgres kapalı olsa bile n8n ayağa kalksın
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
