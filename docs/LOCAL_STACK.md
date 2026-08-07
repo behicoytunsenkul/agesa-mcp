@@ -7,7 +7,7 @@ Bu rehber AgeSA MCP + yerel PostgreSQL + n8n’i **aynı Linux sunucuda** çalı
 ```
 [Tarayıcı] → Next.js :3000
                 ↓ DATABASE_URL
-           PostgreSQL :5432  (firma_asistani)
+           PostgreSQL :5433  (firma_asistani)
                 ↑
            n8n Postgres node
 [Tarayıcı/OmniAgent] → Next /api/chat → n8n Chat Webhook :5678
@@ -31,7 +31,7 @@ Varsayılan bağlantı:
 
 ```text
 Host: 127.0.0.1
-Port: 5432
+Port: 5433
 Database: firma_asistani
 User: agesa
 Password: agesa123
@@ -40,7 +40,7 @@ Password: agesa123
 `DATABASE_URL`:
 
 ```env
-postgresql://agesa:agesa123@127.0.0.1:5432/firma_asistani
+postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani
 ```
 
 > Docker olmadan native Postgres kurduysanız aynı DB/user’ı oluşturup `scripts/schema.sql` uygulayın.
@@ -57,7 +57,7 @@ nano .env.local
 İçerik örneği:
 
 ```env
-DATABASE_URL=postgresql://agesa:agesa123@127.0.0.1:5432/firma_asistani
+DATABASE_URL=postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani
 N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 ```
 
@@ -93,7 +93,7 @@ Eski Neon’dan veri taşıyacaksanız (erişiminiz olan bir makinede):
 
 ```bash
 pg_dump "$NEON_DATABASE_URL" --data-only --table=public.firmalar > firmalar.sql
-psql "postgresql://agesa:agesa123@127.0.0.1:5432/firma_asistani" < firmalar.sql
+psql "postgresql://agesa:agesa123@127.0.0.1:5433/firma_asistani" < firmalar.sql
 ```
 
 ---
@@ -133,7 +133,7 @@ UI: `http://SUNUCU_IP:5678`
 | Database | `firma_asistani` |
 | User | `agesa` |
 | Password | `agesa123` |
-| Port | `5432` |
+| Port | `5433` |
 | SSL | Disable |
 
 **Tüm Firmaları Getir** node’unda bu credential’ı seçin.

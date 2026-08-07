@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: agesa123
       POSTGRES_DB: firma_asistani
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - agesa_pgdata:/var/lib/postgresql/data
       - ./scripts/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
