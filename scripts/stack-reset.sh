@@ -10,16 +10,17 @@ N8="docker compose -f docker-compose.n8n.yml"
 cp -f .env.example .env
 cp -f .env.example .env.local
 mkdir -p /home/dsk1123095nx/n8n-data
-mkdir -p data/n8n-files
+
+if ! docker network inspect n8n_network >/dev/null 2>&1; then
+  echo "HATA: n8n_network yok. Önce mevcut ağınızı kullanın veya bir kez oluşturun:"
+  echo "  docker network create n8n_network"
+  exit 1
+fi
 
 $N8 down -v 2>/dev/null || true
 $RD down -v 2>/dev/null || true
 $PG down -v 2>/dev/null || true
 docker rm -f n8n n8n-worker postgres redis 2>/dev/null || true
-
-docker network rm n8n_network 2>/dev/null || true
-docker network rm agesa_net 2>/dev/null || true
-docker network create n8n_network
 
 $PG up -d
 for i in $(seq 1 90); do
