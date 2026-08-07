@@ -8,6 +8,7 @@
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "eslint",
     "db:setup": "node scripts/run-schema.mjs",
+    "db:ping": "node scripts/db-ping.mjs",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down"
   },

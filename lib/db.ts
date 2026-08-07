@@ -20,6 +20,7 @@ type AnyPool = {
     text: string,
     params?: unknown[]
   ) => Promise<QueryResult<T>>;
+  end?: () => Promise<void>;
 };
 
 declare global {
@@ -42,12 +43,13 @@ async function createPool(connectionString: string): Promise<AnyPool> {
 
   const { Pool } = await import("pg");
   global.__agesaPoolMode = "local";
-  const needsSsl =
-    connectionString.includes("sslmode=require") ||
-    connectionString.includes("sslmode=verify");
+  const forceSsl = /sslmode=(require|verify-ca|verify-full)/i.test(
+    connectionString
+  );
   return new Pool({
     connectionString,
-    ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+    ssl: forceSsl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 10000,
     max: 10,
   });
 }
