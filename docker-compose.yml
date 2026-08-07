@@ -21,7 +21,7 @@ services:
       - agesa-net
 
   n8n:
-    image: docker.n8n.io/n8nio/n8n
+    image: n8nio/n8n:latest
     container_name: agesa-n8n
     restart: unless-stopped
     ports:
@@ -31,12 +31,12 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: http
       N8N_SECURE_COOKIE: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
       WEBHOOK_URL: http://127.0.0.1:5678/
       GENERIC_TIMEZONE: Europe/Istanbul
       TZ: Europe/Istanbul
     volumes:
       - n8n_data:/home/node/.n8n
-    # Postgres kapalı olsa bile n8n ayağa kalksın
     depends_on:
       - postgres
     extra_hosts:
@@ -50,4 +50,5 @@ volumes:
 
 networks:
   agesa-net:
+    name: agesa-net
     driver: bridge
