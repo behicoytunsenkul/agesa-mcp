@@ -21,7 +21,7 @@ export function Sidebar() {
           Agesa
         </p>
         <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-[var(--amber)]">
-          OmniPanel
+          Teknoloji Hattı
         </p>
       </div>
 

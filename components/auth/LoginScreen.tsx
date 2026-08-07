@@ -33,7 +33,7 @@ export function LoginScreen() {
             Agesa
           </p>
           <p className="mt-1 text-[0.6rem] uppercase tracking-[0.18em] text-[var(--amber)]">
-            OmniPanel
+            Teknoloji Hattı
           </p>
           <h1 className="mt-5 font-[family-name:var(--font-display)] text-2xl text-[var(--navy)]">
             Giriş Yap
