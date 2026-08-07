@@ -5,10 +5,11 @@ import type { QueryResult, QueryResultRow } from "pg";
 
 function loadEnvFiles() {
   const root = process.cwd();
-  for (const name of [".env.local", ".env"]) {
+  // .env.local son yüklensin ve shell PG*/DATABASE_URL üzerine yazsın
+  for (const name of [".env", ".env.local"]) {
     const full = resolve(root, name);
     if (existsSync(full)) {
-      loadEnv({ path: full, override: false, quiet: true });
+      loadEnv({ path: full, override: true, quiet: true });
     }
   }
 }
@@ -32,6 +33,26 @@ function isNeonUrl(url: string) {
   return url.includes("neon.tech") || url.includes("neon.database");
 }
 
+/** PGHOST/PGPORT gibi shell env'lerin connectionString portunu ezmesini engeller */
+function parseLocalConfig(connectionString: string) {
+  const u = new URL(connectionString.replace(/^postgres(ql)?:/i, "http:"));
+  const forceSsl = /sslmode=(require|verify-ca|verify-full)/i.test(
+    connectionString
+  );
+  return {
+    host: u.hostname || "127.0.0.1",
+    port: Number(u.port || 5432),
+    user: decodeURIComponent(u.username || ""),
+    password: decodeURIComponent(u.password || ""),
+    database: decodeURIComponent(
+      (u.pathname || "/").replace(/^\//, "") || "postgres"
+    ),
+    ssl: forceSsl ? ({ rejectUnauthorized: false } as const) : false,
+    connectionTimeoutMillis: 10000,
+    max: 10,
+  };
+}
+
 async function createPool(connectionString: string): Promise<AnyPool> {
   if (isNeonUrl(connectionString)) {
     const { neonConfig, Pool } = await import("@neondatabase/serverless");
@@ -43,15 +64,12 @@ async function createPool(connectionString: string): Promise<AnyPool> {
 
   const { Pool } = await import("pg");
   global.__agesaPoolMode = "local";
-  const forceSsl = /sslmode=(require|verify-ca|verify-full)/i.test(
-    connectionString
-  );
-  return new Pool({
-    connectionString,
-    ssl: forceSsl ? { rejectUnauthorized: false } : false,
-    connectionTimeoutMillis: 10000,
-    max: 10,
-  });
+  delete process.env.PGHOST;
+  delete process.env.PGPORT;
+  delete process.env.PGUSER;
+  delete process.env.PGPASSWORD;
+  delete process.env.PGDATABASE;
+  return new Pool(parseLocalConfig(connectionString));
 }
 
 export async function getPool(): Promise<AnyPool> {
