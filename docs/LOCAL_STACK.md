@@ -1,255 +1,172 @@
-# Sıfırdan Kurulum — Yerel PostgreSQL + n8n + AgeSA MCP
+# AgeSA MCP — Mevcut n8n stack üzerine kurulum
 
-Postgres bilgileri:
+Sizin zaten kurulu olanlar (tekrar etmeyin):
 
-| Alan | Değer |
-|------|--------|
-| Host | `127.0.0.1` |
-| Port | `5432` |
-| User | `root` |
-| Password | `123456` |
-| Database | `n8n` |
+- `n8n_network`
+- `postgres` (user=`root`, pass=`123456`, db=`n8n`, port=`5432`)
+- `redis`, `mongodb`, `qdrant`, `n8n :5678`
 
-`DATABASE_URL`:
-
-```env
-postgresql://root:123456@127.0.0.1:5432/n8n
-```
+Aşağıdakiler **eksik kalan** adımlardır.
 
 ---
 
-## 0) Sunucuya hazırlık
-
-```bash
-sudo apt update
-sudo apt install -y git curl docker.io docker-compose-v2
-sudo usermod -aG docker $USER
-# çıkış yapıp tekrar SSH ile girin (docker grubu için)
-
-# Node.js 22
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-node -v
-```
-
----
-
-## 1) Repoyu çek
+## 0) Repo
 
 ```bash
 cd ~
 git clone https://github.com/behicoytunsenkul/agesa-mcp.git
-# veya zaten varsa:
-cd ~/agesa-mcp   # sizin path: ~/VeriTabaniMCP/agesa-mcp olabilir
+# veya mevcut klasör:
+cd ~/VeriTabaniMCP/agesa-mcp   # sizin path
 git pull
 ```
 
 ---
 
-## 2) Postgres + n8n’i Docker ile ayağa kaldır
+## 1) Firma DB oluştur (`n8n` DB’sine dokunma)
 
-> Eski volume ile eski şifre/user kaldıysa sıfırlamak için:
-> `docker compose down -v` (veri silinir)
+Postgres’te n8n meta DB’si `n8n`. Firma verisi için ayrı DB: **`firma_asistani`**.
 
 ```bash
-cd ~/VeriTabaniMCP/agesa-mcp   # kendi klasörünüz
-docker compose down
-docker compose up -d
-docker compose ps
+cd ~/VeriTabaniMCP/agesa-mcp
+chmod +x scripts/create-firma-db.sh
+./scripts/create-firma-db.sh
 ```
 
-Beklenen:
+Elle yapmak isterseniz:
 
-- `agesa-postgres` → healthy  
-- `agesa-n8n` → running  
+```bash
+docker exec -i postgres psql -U root -d n8n -c "CREATE DATABASE firma_asistani WITH ENCODING 'UTF8' TEMPLATE template0;"
+```
 
 Kontrol:
 
 ```bash
-docker exec -it agesa-postgres psql -U root -d n8n -c '\dt'
-```
-
-İlk açılışta `firmalar`, `chat_sessions`, `chat_messages` tabloları `schema.sql` ile oluşur.  
-Görmüyorsanız:
-
-```bash
-# Next tarafındaki script (aynı DB'ye bağlanır)
-cp .env.example .env.local
-npm install
-npm run db:setup
+docker exec -i postgres psql -U root -d n8n -c "\l"
+# firma_asistani listede görünmeli
 ```
 
 ---
 
-## 3) Firma tablolarını doğrula / yeniden oluştur
+## 2) Next.js env + şema + çalıştır
 
-`scripts/schema.sql` şunları yaratır:
+`.env` / `.env.local` (repoda güncel):
 
-- `public.firmalar` (firma verisi)
-- `public.chat_sessions` / `public.chat_messages` (OmniAgent logları)
-
-```bash
-npm run db:setup
-# "Bağlantı: Local / klasik PostgreSQL" + "Schema uygulandı" görmelisiniz
+```env
+DATABASE_URL=postgresql://root:123456@127.0.0.1:5432/firma_asistani
+N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
 ```
 
-Manuel alternatif:
-
 ```bash
-docker exec -i agesa-postgres psql -U root -d n8n < scripts/schema.sql
-```
-
----
-
-## 4) Next.js (AgeSA MCP Online)
-
-```bash
-cp .env.example .env.local
-# İçerik zaten doğru olmalı:
-# DATABASE_URL=postgresql://root:123456@127.0.0.1:5432/n8n
-# N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
-
+git pull
 npm install
+npm run db:setup
+# Beklenen: "Bağlantı: Local / klasik PostgreSQL" + "Schema uygulandı..."
+
 npm run build
 npm run start
+# http://0.0.0.0:3000
 ```
 
-Firewall (başka cihazdan erişim):
+Firewall (gerekirse):
 
 ```bash
 sudo ufw allow 3000/tcp
-sudo ufw allow 5678/tcp
 sudo ufw reload
 ```
 
-- Uygulama: `http://SUNUCU_IP:3000`  
-- Login: `deneme-user@test.com` / `DenemeUser123`
+Başka cihaz: `http://SUNUCU_IP:3000`  
+Login: `deneme-user@test.com` / `DenemeUser123`
 
-### Veriyi doldur (firma)
+### Veri yükle
 
-1. Login → **Datas**
-2. Excel import (Firmalar sheet)  
-   veya satır satır **Yeni firma**
+Datas → Excel import (Firmalar sheet)  
+veya elinizdeki xlsx’i yükleyin.
 
-PM2 (sürekli açık):
+PM2 (kalıcı):
 
 ```bash
 sudo npm i -g pm2
 pm2 start npm --name agesa-mcp -- start
-pm2 save && pm2 startup
-```
-
----
-
-## 5) n8n yapılandırma (sıfırdan)
-
-### 5.1 UI’ye gir
-
-`http://SUNUCU_IP:5678` → ilk açılışta owner hesabı oluşturun.
-
-### 5.2 Workflow import
-
-1. n8n → **Workflows** → **Import**
-2. Dosya: `n8n/firma-veritabani-asistani.json`
-
-### 5.3 Postgres credential (firma sorguları için)
-
-**Credentials → Add → Postgres**
-
-| Alan | Değer |
-|------|--------|
-| Host | `postgres` (n8n Docker içindeyse) **veya** `127.0.0.1` (n8n host’ta ise) |
-| Port | `5432` |
-| Database | `n8n` |
-| User | `root` |
-| Password | `123456` |
-| SSL | Disable |
-
-**Tüm Firmaları Getir** node’unda bu credential’ı seçin.
-
-> n8n container içinden Postgres’e host adı: `postgres` (compose servis adı).  
-> Host makineden test: `127.0.0.1`.
-
-### 5.4 OpenAI credential
-
-**OpenAI Chat Model** → kendi API key’iniz.
-
-### 5.5 Chat Trigger
-
-1. Node: **Sohbet Mesajı Alındığında**
-2. **Make Chat Publicly Available** = ON  
-3. Mode = Embedded Chat (Next kendi chat UI kullanıyor)  
-4. Allowed Origin / CORS = `*` veya `http://SUNUCU_IP:3000`  
-5. Workflow’u **Active** edin  
-
-Webhook URL (Next `.env.local`):
-
-```env
-N8N_CHAT_URL=http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
-```
-
-Dışarıdan test:
-
-```text
-http://SUNUCU_IP:5678/webhook/firma-asistani-chat-webhook/chat
-```
-
-Next’i yeniden başlatın:
-
-```bash
-pm2 restart agesa-mcp
-# veya
-npm run build && npm run start
-```
-
-### 5.6 Agent uyarısı
-
-Postgres çok satır döndürürse Agent döngüye girebilir. Workflow’da **executeOnce = true** olmalı (JSON’da var).
-
----
-
-## 6) Hızlı kontrol
-
-```bash
-# Postgres
-docker exec -it agesa-postgres psql -U root -d n8n -c 'SELECT COUNT(*) FROM firmalar;'
-
-# Next API
-curl -s http://127.0.0.1:3000/api/dashboard | head -c 200
-
-# n8n
-curl -I http://127.0.0.1:5678
-```
-
-OmniAgent’den bir soru sorun → **Logs**’ta session görünsün.
-
----
-
-## 7) Sık sorunlar
-
-| Sorun | Çözüm |
-|-------|--------|
-| `password authentication failed` | Eski volume: `docker compose down -v && docker compose up -d` |
-| `relation firmalar does not exist` | `npm run db:setup` |
-| Next `ETIMEDOUT` Neon’a | Artık local kullanın; `.env.local` yukarıdaki URL olmalı |
-| Chat cevap yok | Workflow Active mi? Credential doğru mu? `N8N_CHAT_URL` doğru mu? |
-| Başka cihazdan açılmıyor | `ufw allow 3000/tcp` + `http://SUNUCU_IP:3000` (localhost değil) |
-
----
-
-## Özet komutlar (kopyala-yapıştır)
-
-```bash
-cd ~/VeriTabaniMCP/agesa-mcp
-git pull
-docker compose down
-docker compose up -d
-cp .env.example .env.local
-npm install
-npm run db:setup
-npm run build
-pm2 delete agesa-mcp 2>/dev/null; pm2 start npm --name agesa-mcp -- start
 pm2 save
 ```
 
-Sonra n8n UI → workflow import → Postgres credential (`root` / `123456` / db `n8n`) → OpenAI → Active.
+---
+
+## 3) n8n — sadece firma Postgres credential + workflow
+
+n8n zaten ayakta. Yapılacaklar:
+
+### 3.1 Postgres credential (firma DB)
+
+n8n UI → **Credentials → Postgres → Add**
+
+| Alan | Değer |
+|------|--------|
+| Host | `postgres` *(aynı docker network)* |
+| Database | `firma_asistani` *(n8n değil!)* |
+| User | `root` |
+| Password | `123456` |
+| Port | `5432` |
+| SSL | Disable |
+| Name | örn. `Firma Postgres` |
+
+> Host `127.0.0.1` n8n container içinden genelde **çalışmaz**. Docker network adı: **`postgres`**.
+
+### 3.2 Workflow import
+
+1. n8n → Workflows → **Import from File**
+2. Dosya: `n8n/firma-veritabani-asistani.json`
+3. **Tüm Firmaları Getir** node → credential = `Firma Postgres`
+4. **OpenAI Chat Model** → kendi OpenAI key
+5. Chat Trigger:
+   - Public = ON
+   - Allowed Origin = `*` veya `http://SUNUCU_IP:3000`
+6. Workflow **Active**
+
+Webhook (chat):
+
+```text
+http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat
+```
+
+Next `.env` içindeki `N8N_CHAT_URL` bununla aynı olmalı. Dışarıdan erişilecekse:
+
+```env
+N8N_CHAT_URL=http://SUNUCU_IP:5678/webhook/firma-asistani-chat-webhook/chat
+```
+
+Sonra Next’i yeniden build/start veya `pm2 restart agesa-mcp`.
+
+### 3.3 Agent notu
+
+Workflow’da `executeOnce=true` olmalı (JSON’da var). Postgres çok satır döndürür; Agent’ın satır satır loop’a girmesini engeller.
+
+---
+
+## 4) Hızlı test
+
+```bash
+# DB
+docker exec -i postgres psql -U root -d firma_asistani -c "SELECT COUNT(*) FROM firmalar;"
+
+# Next API
+curl -s http://127.0.0.1:3000/api/dashboard | head
+
+# n8n webhook (Active workflow sonrası)
+curl -s -X POST http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"sendMessage","sessionId":"test-1","chatInput":"Merhaba"}'
+```
+
+---
+
+## Özet tablo
+
+| Servis | Ne için | DB / Port |
+|--------|---------|-----------|
+| `postgres` / db=`n8n` | n8n kendi verisi | 5432 |
+| `postgres` / db=`firma_asistani` | AgeSA + agent firmalar tablosu | 5432 |
+| Next | UI + API | 3000 |
+| n8n | OmniAgent webhook | 5678 |
+
+Redis / Mongo / Qdrant’a AgeSA Next’in ihtiyacı yok; dokunmayın.

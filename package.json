@@ -8,11 +8,9 @@
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "eslint",
     "db:setup": "node scripts/run-schema.mjs",
-    "db:ping": "node scripts/db-ping.mjs",
-    "db:up": "bash scripts/stack-up.sh",
-    "db:down": "bash scripts/stack-down.sh",
-    "stack:reset": "bash scripts/stack-reset.sh",
-    "stack:bootstrap": "bash scripts/stack-reset.sh"
+    "db:create": "bash scripts/create-firma-db.sh",
+    "db:up": "bash scripts/create-firma-db.sh",
+    "db:down": "echo 'Mevcut postgres konteynerine dokunulmaz. Durdurmak için: docker stop postgres'"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

@@ -16,21 +16,20 @@ Neon PostgreSQL üzerindeki firma veritabanı için Next.js portal: Dashboard, D
 - Neon / PostgreSQL connection string
 - n8n Chat Trigger webhook URL
 
-## Yerel sunucu (Neon yok)
+## Yerel sunucu (mevcut n8n stack)
 
-Tam kurulum: [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md)
+Postgres: `root` / `123456` / port `5432`  
+Firma DB: `firma_asistani` (n8n DB’sinden ayrı)
 
-Özet:
+Tam adımlar: [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md)
 
 ```bash
 git pull
-docker compose up -d
-cp .env.example .env.local   # root:123456@127.0.0.1:5432/n8n
+./scripts/create-firma-db.sh
 npm install && npm run db:setup && npm run build && npm run start
 ```
 
-n8n workflow: [n8n/firma-veritabani-asistani.json](n8n/firma-veritabani-asistani.json)  
-Postgres credential: Host `postgres` (Docker) veya `127.0.0.1`, User `root`, Pass `123456`, DB `n8n`.
+n8n Postgres credential Host=`postgres`, Database=`firma_asistani`.
 
 ## Kurulum (lokal geliştirme)
 
