@@ -62,11 +62,36 @@ nano .env.local   # DATABASE_URL ve N8N_CHAT_URL girin
 # 5) DB şeması
 npm run db:setup
 
-# 6) Build + start
+# 6) Build + start (tüm ağ arayüzlerinde dinler: 0.0.0.0)
 npm run build
-npm run start     # varsayılan http://0.0.0.0:3000 değilse PORT=3000 npm run start
+npm run start
 ```
 
+### Diğer cihazdan erişim (önemli)
+
+`localhost` / `127.0.0.1` **sadece sunucunun kendi tarayıcısından** çalışır. Telefondan veya başka bilgisayardan:
+
+1. Sunucunun IP adresini öğrenin:
+   ```bash
+   hostname -I | awk '{print $1}'
+   # veya
+   ip -4 addr show | grep inet
+   ```
+2. Tarayıcıda açın: `http://SUNUCU_IP:3000`  
+   Örnek: `http://192.168.1.50:3000` veya public IP
+3. Firewall portunu açın:
+   ```bash
+   sudo ufw allow 3000/tcp
+   sudo ufw reload
+   sudo ufw status
+   ```
+4. Uygulama `0.0.0.0:3000` üzerinde dinliyor olmalı (`npm run start` bunu yapar). Kontrol:
+   ```bash
+   ss -tlnp | grep 3000
+   # 0.0.0.0:3000 veya *:3000 görünmeli; sadece 127.0.0.1 ise dışarıdan açılmaz
+   ```
+
+Cloud VPS (DigitalOcean, Hetzner, AWS…) kullanıyorsanız panelden de **Inbound TCP 3000** kuralı ekleyin.
 PM2 ile arka planda çalıştırma:
 
 ```bash
