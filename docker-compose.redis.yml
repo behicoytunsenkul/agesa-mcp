@@ -1,25 +1,20 @@
-# Sadece Redis
+# Redis
 # docker compose -f docker-compose.redis.yml up -d
 
 services:
   redis:
     image: redis:7-alpine
     container_name: redis
-    restart: unless-stopped
+    restart: always
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
     networks:
-      - agesa_net
+      - n8n_network
 
 volumes:
   redis_data:
 
 networks:
-  agesa_net:
+  n8n_network:
     external: true
