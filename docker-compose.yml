@@ -17,6 +17,37 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - agesa-net
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: agesa-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+      # SUNUCU_IP'yi kendi IP'nizle değiştirin (ör. 10.x.x.x)
+      WEBHOOK_URL: http://127.0.0.1:5678/
+      GENERIC_TIMEZONE: Europe/Istanbul
+      TZ: Europe/Istanbul
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - agesa-net
 
 volumes:
   agesa_pgdata:
+  n8n_data:
+
+networks:
+  agesa-net:
+    driver: bridge

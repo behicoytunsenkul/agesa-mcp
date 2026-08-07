@@ -96,35 +96,55 @@ Veri: **Datas → Excel import**
 
 ## 5) n8n
 
+Postgres ile **aynı compose** içinde çalıştırın (önerilen):
+
 ```bash
-docker run -d --name n8n --restart unless-stopped \
-  -p 5678:5678 \
-  -v n8n_data:/home/node/.n8n \
-  -e N8N_HOST=0.0.0.0 \
-  -e N8N_PORT=5678 \
-  -e N8N_PROTOCOL=http \
-  -e WEBHOOK_URL=http://SUNUCU_IP:5678/ \
-  --add-host=host.docker.internal:host-gateway \
-  docker.n8n.io/n8nio/n8n
+# Eski ayrı n8n container varsa kaldırın
+docker rm -f n8n agesa-n8n 2>/dev/null || true
+
+docker compose up -d
 ```
 
-1. UI: `http://SUNUCU_IP:5678`
-2. Import: `n8n/firma-veritabani-asistani.json`
-3. **Postgres credential**
+UI: `http://SUNUCU_IP:5678`
+
+### Postgres credential (n8n Docker → aynı network)
 
 | Alan | Değer |
 |------|--------|
-| Host | `host.docker.internal` (n8n Docker) veya `127.0.0.1` (native) |
-| Port | `5433` |
+| Host | `postgres` |
+| Port | `5432` |
 | Database | `firma_asistani` |
 | User | `root` |
 | Password | `123456` |
 | SSL | Disable |
+| Ignore SSL Issues | açık |
 
-4. **Tüm Firmaları Getir** → bu credential  
-5. **OpenAI** → kendi API key  
-6. Chat Trigger → Public + **Active**  
-7. Webhook: `http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat`
+> **Önemli:** n8n container içinde `127.0.0.1` = n8n’in kendisi (Postgres değil).  
+> Host’a `127.0.0.1:5433` yazmayın. Compose içinden host adı `postgres`, port **5432** (container içi).
+
+Alternatif (Postgres host’ta, n8n Docker’da):
+
+| Alan | Değer |
+|------|--------|
+| Host | `host.docker.internal` |
+| Port | `5433` |
+| … | aynı user/pass/db |
+
+1. Import: `n8n/firma-veritabani-asistani.json`
+2. **Tüm Firmaları Getir** → bu credential  
+3. **OpenAI** → API key  
+4. Chat Trigger → Public + **Active**  
+5. Webhook: `http://127.0.0.1:5678/webhook/firma-asistani-chat-webhook/chat`
+
+### Credential test (sunucuda)
+
+```bash
+# n8n container'dan Postgres'e ping
+docker exec -it agesa-n8n sh -c 'nc -zv postgres 5432 || true'
+
+# Postgres tarafında auth
+docker exec -it agesa-postgres psql -U root -d firma_asistani -c 'SELECT 1'
+```
 
 ---
 
